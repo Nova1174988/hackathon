@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: hamro-health-db
+    environment:
+      POSTGRES_USER: hamrohealth
+      POSTGRES_PASSWORD: hamrohealth123
+      POSTGRES_DB: hamrohealth
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hamrohealth"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hamro-health-backend
+    environment:
+      DATABASE_URL: postgresql://hamrohealth:hamrohealth123@postgres:5432/hamrohealth
+      JWT_SECRET: your-super-secret-jwt-key-change-this-in-production
+      JWT_REFRESH_SECRET: your-refresh-secret-change-this-in-production
+      OPENROUTER_API_KEY: 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
+      NODE_ENV: development
+      CORS_ORIGIN: http://localhost:5173
+      PORT: 5000
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: npm run dev
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: hamro-health-frontend
+    environment:
+      VITE_API_URL: http://localhost:5000
+      VITE_SOCKET_URL: http://localhost:5000
+      VITE_APP_NAME: Hamro Health
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev
+
+volumes:
+  postgres_data:
