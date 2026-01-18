@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                     String          @id @default(uuid())
+  name                   String
+  email                  String          @unique
+  password               String
+  phone                  String?
+  role                   Role            @default(PATIENT)
+  languagePreference     Language        @default(ENGLISH)
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+  
+  doctor                 Doctor?
+  consultationsAsPatient Consultation[]  @relation("PatientConsultations")
+  messages               Message[]
+  symptomChecks          SymptomCheck[]
+  
+  @@index([email])
+}
+
+model Doctor {
+  id                  String              @id @default(uuid())
+  userId              String              @unique
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialization      String
+  licenseNumber       String              @unique
+  experienceYears     Int
+  bio                 String?
+  rating              Float               @default(0)
+  totalConsultations  Int                 @default(0)
+  availabilityStatus  AvailabilityStatus  @default(OFFLINE)
+  consultationFee     Float
+  languagesSpoken     String[]
+  photoUrl            String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  
+  consultations       Consultation[]      @relation("DoctorConsultations")
+  
+  @@index([specialization, availabilityStatus])
+}
+
+model Consultation {
+  id              String              @id @default(uuid())
+  patientId       String
+  patient         User                @relation("PatientConsultations", fields: [patientId], references: [id])
+  doctorId        String
+  doctor          Doctor              @relation("DoctorConsultations", fields: [doctorId], references: [id])
+  status          ConsultationStatus  @default(PENDING)
+  scheduledTime   DateTime
+  startedAt       DateTime?
+  endedAt         DateTime?
+  patientNotes    String?
+  doctorNotes     String?
+  prescription    String?
+  rating          Int?
+  review          String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  
+  messages        Message[]
+  
+  @@index([patientId, doctorId, status])
+}
+
+model Message {
+  id              String        @id @default(uuid())
+  consultationId  String
+  consultation    Consultation  @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  senderId        String
+  sender          User          @relation(fields: [senderId], references: [id])
+  messageText     String
+  isFile          Boolean       @default(false)
+  fileUrl         String?
+  timestamp       DateTime      @default(now())
+  isRead          Boolean       @default(false)
+  
+  @@index([consultationId, timestamp])
+}
+
+model Announcement {
+  id          String                @id @default(uuid())
+  title       String
+  content     String
+  category    AnnouncementCategory
+  language    Language
+  priority    Priority              @default(MEDIUM)
+  imageUrl    String?
+  publishedAt DateTime?
+  isDraft     Boolean               @default(true)
+  views       Int                   @default(0)
+  shares      Int                   @default(0)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  
+  @@index([category, priority, publishedAt])
+}
+
+model SymptomCheck {
+  id              String    @id @default(uuid())
+  userId          String?
+  user            User?     @relation(fields: [userId], references: [id])
+  symptoms        String
+  duration        String
+  severity        Int
+  medicalHistory  String?
+  medications     String?
+  aiResponse      String
+  language        Language
+  createdAt       DateTime  @default(now())
+  
+  @@index([userId, createdAt])
+}
+
+enum Role {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum Language {
+  ENGLISH
+  NEPALI
+}
+
+enum AvailabilityStatus {
+  AVAILABLE
+  BUSY
+  OFFLINE
+}
+
+enum ConsultationStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum AnnouncementCategory {
+  VACCINATION
+  OUTBREAK
+  GENERAL
+  EMERGENCY
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
