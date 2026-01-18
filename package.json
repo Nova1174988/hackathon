@@ -1,0 +1,14 @@
+{
+  "name": "hamro-health",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Hamro Health - Telehealth Platform",
+  "scripts": {
+    "build": "cd frontend && npm run build",
+    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "vercel-build": "cd frontend && npm run build"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
